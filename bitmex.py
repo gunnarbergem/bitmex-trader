@@ -163,6 +163,7 @@ class BitMEX(object):
         }
         if stopPx > 0:
             postdict['stopPx'] = stopPx
+            postdict['execInst'] = 'LastPrice'
 
         return self._curl_bitmex(path=endpoint, postdict=postdict, verb="POST")
 

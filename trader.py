@@ -213,7 +213,7 @@ class OrderManager:
 
         self.exchange.bitmex.sell(amount, take_profit_price)
 
-        #self.exchange.bitmex.stop_limit(amount, stop_price, stop_price + 5)
+        self.exchange.bitmex.stop_limit(amount, stop_price, stop_price + 5)
 
     ###
     # Position Limits

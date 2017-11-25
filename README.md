@@ -1,1 +1,2 @@
-# bitmex-trader
+BitMEX Trader
+===================

@@ -1,0 +1,8 @@
+*.pyc
+*.iml
+.idea/
+build/
+dist/
+bitmex_trader.egg-info/
+
+settings.py

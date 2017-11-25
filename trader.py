@@ -66,38 +66,6 @@ class ExchangeInterface:
 
         sleep(settings.API_REST_INTERVAL)
 
-    def get_portfolio(self):
-        contracts = settings.CONTRACTS
-        portfolio = {}
-        for symbol in contracts:
-            position = self.bitmex.position(symbol=symbol)
-            instrument = self.bitmex.instrument(symbol=symbol)
-
-            if instrument['isQuanto']:
-                future_type = "Quanto"
-            elif instrument['isInverse']:
-                future_type = "Inverse"
-            elif not instrument['isQuanto'] and not instrument['isInverse']:
-                future_type = "Linear"
-            else:
-                raise NotImplementedError("Unknown future type; not quanto or inverse: %s" % instrument['symbol'])
-
-            if instrument['underlyingToSettleMultiplier'] is None:
-                multiplier = float(instrument['multiplier']) / float(instrument['quoteToSettleMultiplier'])
-            else:
-                multiplier = float(instrument['multiplier']) / float(instrument['underlyingToSettleMultiplier'])
-
-            portfolio[symbol] = {
-                "currentQty": float(position['currentQty']),
-                "futureType": future_type,
-                "multiplier": multiplier,
-                "markPrice": float(instrument['markPrice']),
-                "spot": float(instrument['indicativeSettlePrice'])
-            }
-
-        return portfolio
-
-
     def get_delta(self, symbol=None):
         if symbol is None:
             symbol = self.symbol
@@ -211,18 +179,13 @@ class OrderManager:
         """Print the current MM status."""
 
         margin = self.exchange.get_margin()
-        position = self.exchange.get_position()
         self.running_qty = self.exchange.get_delta()
-        tickLog = self.exchange.get_instrument()['tickLog']
         self.start_XBt = margin["marginBalance"]
 
         logger.info("Current XBT Balance: %.6f" % XBt_to_XBT(self.start_XBt))
         logger.info("Current Contract Position: %d" % self.running_qty)
         if settings.CHECK_POSITION_LIMITS:
             logger.info("Position limits: %d/%d" % (settings.MIN_POSITION, settings.MAX_POSITION))
-        if position['currentQty'] != 0:
-            logger.info("Avg Cost Price: %.*f" % (tickLog, float(position['avgCostPrice'])))
-            logger.info("Avg Entry Price: %.*f" % (tickLog, float(position['avgEntryPrice'])))
 
 
     ###
@@ -244,8 +207,8 @@ class OrderManager:
         take_profit_price = int(sell_price * 1.015)
         stop_price = int(sell_price * 0.995)
 
-        logger.info("current xbt: %.6f sell price %.f amount to buy: %d", current_xbt, sell_price, amount)
-        logger.info("take profit: %d  stop: %d", take_profit_price, stop_price)
+        logger.info("Buy %d contracts @ %.f", amount, sell_price)
+        logger.info("Take profit: %d - Stop loss: %d", take_profit_price, stop_price)
 
         self.exchange.bitmex.buy(amount, sell_price)
 

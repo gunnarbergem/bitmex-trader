@@ -143,11 +143,19 @@ class BitMEX(object):
         return self.place_order(-quantity, price)
 
     @authentication_required
+    def sell_take_profit(self, quantity, price):
+        """Place a sell order.
+
+        Returns order object. ID: orderID
+        """
+        return self.place_order(-quantity, price, execInst='ReduceOnly')
+
+    @authentication_required
     def stop_limit(self, quantity, price, stopPx):
         return self.place_order(-quantity, price, stopPx)
 
     @authentication_required
-    def place_order(self, quantity, price, stopPx=0):
+    def place_order(self, quantity, price, stopPx=0, execInst=None):
         """Place an order."""
         if price < 0:
             raise Exception("Price must be positive.")
@@ -163,7 +171,9 @@ class BitMEX(object):
         }
         if stopPx > 0:
             postdict['stopPx'] = stopPx
-            postdict['execInst'] = 'LastPrice'
+            postdict['execInst'] = 'LastPrice,Close'
+        if execInst is not None:
+            postdict['execInst'] = execInst
 
         return self._curl_bitmex(path=endpoint, postdict=postdict, verb="POST")
 

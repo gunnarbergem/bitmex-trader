@@ -308,7 +308,7 @@ class OrderManager:
 
                 logger.info("Order is filled. Take profit: %d - Stop loss: %d", take_profit_price, stop_price)
 
-                self.exchange.bitmex.sell(amount, take_profit_price)
+                self.exchange.bitmex.sell_take_profit(amount, take_profit_price)
                 self.exchange.bitmex.stop_limit(amount, stop_price - 5, stop_price)
 
     def restart(self):

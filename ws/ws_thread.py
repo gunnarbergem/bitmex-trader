@@ -116,6 +116,12 @@ class BitMEXWebsocket():
         # Filter to only open orders (leavesQty > 0) and those that we actually placed
         return [o for o in orders if str(o['clOrdID']).startswith(clOrdIDPrefix) and o['leavesQty'] > 0]
 
+    def order(self, clOrdID):
+        orders = self.data['order']
+        for order in orders:
+            if order['clOrdID'] == clOrdID:
+                return order
+
     def position(self, symbol):
         positions = self.data['position']
         pos = [p for p in positions if p['symbol'] == symbol]
@@ -273,10 +279,6 @@ class BitMEXWebsocket():
 
                         # Update this item.
                         item.update(updateData)
-
-                        # Remove canceled / filled orders
-                        if table == 'order' and item['leavesQty'] <= 0:
-                            self.data[table].remove(item)
 
                 elif action == 'delete':
                     self.logger.debug('%s: deleting %s' % (table, message['data']))

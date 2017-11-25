@@ -86,6 +86,9 @@ class ExchangeInterface:
             return []
         return self.bitmex.open_orders()
 
+    def get_order(self, clOrdID):
+        return self.bitmex.order(clOrdID)
+
     def get_highest_buy(self):
         buys = [o for o in self.get_orders() if o['side'] == 'Buy']
         if not len(buys):
@@ -162,6 +165,7 @@ class OrderManager:
         self.instrument = self.exchange.get_instrument()
         self.starting_qty = self.exchange.get_delta()
         self.running_qty = self.starting_qty
+        self.current_order_id = None
         self.reset()
 
     def reset(self):
@@ -203,17 +207,11 @@ class OrderManager:
 
         amount = round(int(current_xbt * sell_price), -1)
 
-        take_profit_price = int(sell_price * 1.015)
-        stop_price = int(sell_price * 0.995)
-
         logger.info("Buy %d contracts @ %.f", amount, sell_price)
-        logger.info("Take profit: %d - Stop loss: %d", take_profit_price, stop_price)
 
-        self.exchange.bitmex.buy(amount, sell_price)
+        order = self.exchange.bitmex.buy(amount, sell_price)
+        self.current_order_id = order['clOrdID']
 
-        self.exchange.bitmex.sell(amount, take_profit_price)
-
-        self.exchange.bitmex.stop_limit(amount, stop_price, stop_price + 5)
 
     ###
     # Position Limits
@@ -299,6 +297,20 @@ class OrderManager:
             self.sanity_check()  # Ensures health of mm - several cut-out points here
             self.print_status()  # Print skew, delta, etc
 
+            current_order = self.exchange.get_order(self.current_order_id)
+            is_filled = 'ordStatus' in current_order and current_order['ordStatus'] == 'Filled'
+            if is_filled and len(self.exchange.get_orders()) == 0:
+                amount = current_order['cumQty']
+                avg_price = current_order['avgPx']
+
+                take_profit_price = int(avg_price * 1.015)
+                stop_price = int(avg_price * 0.995)
+
+                logger.info("Order is filled. Take profit: %d - Stop loss: %d", take_profit_price, stop_price)
+
+                self.exchange.bitmex.sell(amount, take_profit_price)
+                self.exchange.bitmex.stop_limit(amount, stop_price - 5, stop_price)
+
     def restart(self):
         logger.info("Restarting the market maker...")
         os.execv(sys.executable, [sys.executable] + sys.argv)
@@ -325,6 +337,6 @@ def run():
     # Try/except just keeps ctrl-c from printing an ugly stacktrace
     try:
         om.init()
-        #om.run_loop()
+        om.run_loop()
     except (KeyboardInterrupt, SystemExit):
         sys.exit()

@@ -165,7 +165,6 @@ class OrderManager:
         self.reset()
 
     def reset(self):
-        self.exchange.cancel_all_orders()
         self.sanity_check()
         self.print_status()
 
@@ -200,7 +199,7 @@ class OrderManager:
         current_satoshi = margin["marginBalance"]
         current_xbt = XBt_to_XBT(current_satoshi)
         ticker = self.exchange.get_ticker()
-        sell_price = ticker["sell"]
+        sell_price = ticker["sell"] + 5
 
         amount = round(int(current_xbt * sell_price), -1)
 
@@ -214,7 +213,7 @@ class OrderManager:
 
         self.exchange.bitmex.sell(amount, take_profit_price)
 
-        self.exchange.bitmex.stop_limit(amount, stop_price, stop_price + 5)
+        #self.exchange.bitmex.stop_limit(amount, stop_price, stop_price + 5)
 
     ###
     # Position Limits
@@ -273,9 +272,8 @@ class OrderManager:
         return self.exchange.is_open()
 
     def exit(self):
-        logger.info("Shutting down. All open orders will be cancelled.")
+        logger.info("Shutting down.")
         try:
-            #self.exchange.cancel_all_orders()
             self.exchange.bitmex.exit()
         except errors.AuthenticationError as e:
             logger.info("Was not authenticated; could not cancel orders.")
@@ -300,7 +298,6 @@ class OrderManager:
 
             self.sanity_check()  # Ensures health of mm - several cut-out points here
             self.print_status()  # Print skew, delta, etc
-            self.place_orders()  # Creates desired orders and converges to existing orders
 
     def restart(self):
         logger.info("Restarting the market maker...")
